@@ -38,10 +38,15 @@ def get_api_key():
         logging.error(f"Error reading API key: {e}")
         return None
 
-API_KEY = get_api_key()
 LAT = 40.7293
 LON = -74.2583
 UNITS = "imperial"
+
+API_KEY = get_api_key()
+if not API_KEY:
+    logging.critical("Missing or invalid API key. Exiting.")
+    sys.exit(1)
+
 
 # Fonts
 font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
