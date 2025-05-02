@@ -10,6 +10,15 @@ import traceback
 
 logging.basicConfig(level=logging.INFO)
 
+
+
+# Parse command-line arguments
+import argparse
+parser = argparse.ArgumentParser(description="Weather Display")
+parser.add_argument('--mock', action='store_true', help='Use mock display instead of real Waveshare e-Paper')
+args = parser.parse_args()
+
+
 # Dynamically set paths
 script_dir = os.path.dirname(os.path.realpath(__file__))
 libdir = os.path.join(script_dir, 'external', 'waveshare', 'RaspberryPi_JetsonNano', 'python', 'lib')
@@ -19,11 +28,19 @@ picdir = os.path.join(script_dir, 'assets', 'icons')
 if os.path.exists(libdir):
     sys.path.append(libdir)
 
-try:
-    from waveshare_epd import epd4in2b_V2 # type: ignore
-except ImportError:
-    logging.critical("Failed to import waveshare_epd. Ensure the library is installed or the path is correct.")
-    sys.exit(1)
+if args.mock:
+    print("[INFO] Mock mode enabled")
+    from mock_epd import EPD
+    class epd4in2b_V2:
+        EPD = EPD
+else:
+    try:
+        from waveshare_epd import epd4in2b_V2
+    except (ImportError, OSError, AttributeError):
+        print("[WARNING] Hardware import failed, falling back to mock mode")
+        from mock_epd import EPD
+        class epd4in2b_V2:
+            EPD = EPD
 
 # Load API key
 def get_api_key():
