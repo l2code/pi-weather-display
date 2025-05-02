@@ -7,21 +7,23 @@ from datetime import datetime
 import logging
 from PIL import Image, ImageDraw, ImageFont
 import traceback
-import math
 
 logging.basicConfig(level=logging.INFO)
 
-libdir = '/home/rissac/e-Paper/RaspberryPi_JetsonNano/python/lib'
-picdir = '/home/rissac/e-Paper/RaspberryPi_JetsonNano/python/pic'
+# Dynamically set paths
+script_dir = os.path.dirname(os.path.realpath(__file__))
+libdir = os.path.join(script_dir, 'external', 'waveshare', 'RaspberryPi_JetsonNano', 'python', 'lib')
+picdir = os.path.join(script_dir, 'assets', 'icons')
 
+# Add Waveshare e-Paper lib to path
 if os.path.exists(libdir):
     sys.path.append(libdir)
 
 from waveshare_epd import epd4in2b_V2
 
+# Load API key
 def get_api_key():
     try:
-        script_dir = os.path.dirname(os.path.realpath(__file__))
         api_key_path = os.path.join(script_dir, 'api_key.txt')
         if not os.path.exists(api_key_path):
             logging.error("API key file not found")
@@ -41,6 +43,7 @@ LAT = 40.7293
 LON = -74.2583
 UNITS = "imperial"
 
+# Fonts
 font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 font_header = ImageFont.truetype(font_path, 22)
 font_temp = ImageFont.truetype(font_path, 64)
@@ -48,7 +51,7 @@ font_large = ImageFont.truetype(font_path, 18)
 font_medium = ImageFont.truetype(font_path, 16)
 font_small = ImageFont.truetype(font_path, 12)
 
-
+# Weather API call
 def get_weather_data():
     try:
         if not API_KEY:
@@ -60,17 +63,21 @@ def get_weather_data():
         logging.error(f"Error fetching data: {e}")
         return None
 
+# Icon lookup
 def get_weather_icon(icon_code, size='current', is_night=False):
-    suffix = '_n' if is_night else '_d'
     dimension = 80 if size == 'current' else 44
+    suffix = '_n' if is_night else '_d'
     filename = f"icon_{icon_code}_{dimension}.png"
-    return os.path.join(picdir, filename)
+    icon_path = os.path.join(picdir, filename)
+    return icon_path
 
+# Display update logic
 def update_display():
     try:
         epd = epd4in2b_V2.EPD()
         epd.init()
         epd.Clear()
+
         black_img = Image.new('1', (epd.width, epd.height), 255)
         red_img = Image.new('1', (epd.width, epd.height), 255)
         draw = ImageDraw.Draw(black_img)
