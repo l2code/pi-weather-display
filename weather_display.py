@@ -20,7 +20,7 @@ if os.path.exists(libdir):
     sys.path.append(libdir)
 
 try:
-    from waveshare_epd import epd4in2b_V2
+    from waveshare_epd import epd4in2b_V2 # type: ignore
 except ImportError:
     logging.critical("Failed to import waveshare_epd. Ensure the library is installed or the path is correct.")
     sys.exit(1)
@@ -91,12 +91,12 @@ def get_weather_icon(icon_code, size='current', is_night=False):
     icon_path = os.path.join(picdir, filename)
     return icon_path
 
-def draw_header(draw, width, location_name):
+def draw_header(draw, width, height, location_name):
     """Draw the header with location and border"""
     draw.rectangle((0, 0, width - 1, height - 1), outline=0, width=2)
     draw.text((10, 5), location_name, font=font_header, fill=0)
 
-def draw_current_conditions(draw, curr, daily, width):
+def draw_current_conditions(draw, curr, daily, width, is_night, black_img):
     """Draw current temperature and conditions"""
     # Current temperature
     draw.text((10, 28), f"{int(curr['temp'])}°F", font=font_temp, fill=0)
@@ -115,7 +115,7 @@ def draw_current_conditions(draw, curr, daily, width):
     draw.text((10, 152), f"High: {int(daily[0]['temp']['max'])}°F", font=font_large, fill=0)
     draw.text((170, 152), f"Low: {int(daily[0]['temp']['min'])}°F", font=font_large, fill=0)
 
-def draw_forecast(draw, daily, width, is_night):
+def draw_forecast(draw, daily, width, is_night, black_img):
     """Draw 5-day forecast"""
     days = [datetime.fromtimestamp(d['dt']).strftime('%a') for d in daily[:5]]
     cell_width = width // 5
@@ -176,9 +176,9 @@ def update_display():
             update_time = dt.strftime("%I:%M %p")
 
             # Draw all components
-            draw_header(draw, epd.width, LOCATION_NAME)
-            draw_current_conditions(draw, curr, daily, epd.width)
-            draw_forecast(draw, daily, epd.width, is_night)
+            draw_header(draw, epd.width, epd.height, LOCATION_NAME)
+            draw_current_conditions(draw, curr, daily, epd.width, is_night, black_img)
+            draw_forecast(draw, daily, epd.width, is_night, black_img)
             draw_update_time(draw, update_time, epd.width, epd.height)
 
         # Update display
