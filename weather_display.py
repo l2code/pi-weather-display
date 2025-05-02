@@ -144,7 +144,7 @@ def render_current_weather(draw, current, today, width):
     update_width = draw.textlength(updated_label, font=font_small)
     draw.text((width - update_width - 6, 190), updated_label, font=font_small, fill=0)
 
-def render_forecast(draw_black, draw_red, forecast_days, width):
+def render_forecast(draw, forecast_days, width):
     cell_width = width // 5
     icon_size = 44
     y_base = 195
@@ -159,26 +159,16 @@ def render_forecast(draw_black, draw_red, forecast_days, width):
     for i, day_data in enumerate(forecast_days):
         x_center = i * cell_width + (cell_width // 2)
         day_label = datetime.fromtimestamp(day_data['dt']).strftime('%a')
-        draw_black.text((x_center - 15, y_base), day_label, font=font_medium, fill=0)
+        draw.text((x_center - 15, y_base), day_label, font=font_medium, fill=0)
 
         icon_path = get_weather_icon(day_data['weather'][0]['icon'], size='forecast', is_night=is_night)
         if os.path.exists(icon_path):
             icon = Image.open(icon_path).convert("L").convert("1")
-            draw_black.bitmap((x_center - icon_size // 2, y_icon), icon.resize((icon_size, icon_size), Image.LANCZOS))
+            draw.bitmap((x_center - icon_size // 2, y_icon), icon.resize((icon_size, icon_size), Image.LANCZOS))
 
         temp_text = f"{int(day_data['temp']['max'])}/{int(day_data['temp']['min'])}"
-        temp_width = draw_black.textlength(temp_text, font=font_small)
-        draw_black.text((x_center - temp_width // 2, y_text), temp_text, font=font_small, fill=0)
-
-        # 🔴 Add red alert if PoP > 60% or bad weather
-        pop = int(day_data.get('pop', 0) * 100)
-        main_weather = day_data['weather'][0]['main'].lower()
-        if pop > 60 or main_weather in ['thunderstorm', 'rain', 'snow']:
-            draw_red.ellipse(
-                (x_center - 6, y_base - 6, x_center + 6, y_base + 6), fill=0
-            )
-            draw_red.text((x_center - 4, y_base - 4), "!", font=font_small, fill=255)  # White on red
-
+        temp_width = draw.textlength(temp_text, font=font_small)
+        draw.text((x_center - temp_width // 2, y_text), temp_text, font=font_small, fill=0)
 
 if __name__ == '__main__':
     update_display()
