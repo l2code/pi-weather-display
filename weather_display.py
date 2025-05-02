@@ -164,6 +164,7 @@ def draw_update_time(draw, update_time, width, height):
     update_width = draw.textlength(updated_label, font=font_small)
     draw.text((width - update_width - 6, height - 22), updated_label, font=font_small, fill=0)
 
+
 def update_display():
     """Main display update function"""
     try:
