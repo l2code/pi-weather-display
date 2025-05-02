@@ -21,6 +21,22 @@ if os.path.exists(libdir):
 
 from waveshare_epd import epd4in2b_V2
 
+# Load configuration
+def load_config():
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        logging.critical(f"Failed to load config.json: {e}")
+        sys.exit(1)
+
+config = load_config()
+LAT = config.get('lat')
+LON = config.get('lon')
+UNITS = config.get('units', 'imperial')
+LOCATION_NAME = config.get('location_name', 'Unknown Location')        
+
 # Load API key
 def get_api_key():
     try:
@@ -35,17 +51,10 @@ def get_api_key():
             return None
         return api_key
     except Exception as e:
-        logging.error(f"Error reading API key: {e}")
-        return None
-
-LAT = 40.7293
-LON = -74.2583
-UNITS = "imperial"
+        logging.critical(f"API key error: {e}")
+        sys.exit(1)
 
 API_KEY = get_api_key()
-if not API_KEY:
-    logging.critical("Missing or invalid API key. Exiting.")
-    sys.exit(1)
 
 
 # Fonts
