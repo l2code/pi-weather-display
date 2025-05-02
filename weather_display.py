@@ -19,7 +19,11 @@ picdir = os.path.join(script_dir, 'assets', 'icons')
 if os.path.exists(libdir):
     sys.path.append(libdir)
 
-from waveshare_epd import epd4in2b_V2
+try:
+    from waveshare_epd import epd4in2b_V2
+except ImportError:
+    logging.critical("Failed to import waveshare_epd. Ensure the library is installed or the path is correct.")
+    sys.exit(1)
 
 # Load configuration
 def load_config():
