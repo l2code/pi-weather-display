@@ -20,7 +20,7 @@ if os.path.exists(libdir):
     sys.path.append(libdir)
 
 try:
-    from waveshare_epd import epd4in2b_V2
+    from waveshare_epd import epd4in2b_V2 # type: ignore
 except ImportError:
     logging.critical("Failed to import waveshare_epd. Ensure the library is installed or the path is correct.")
     sys.exit(1)
