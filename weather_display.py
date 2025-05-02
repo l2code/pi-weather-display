@@ -20,10 +20,26 @@ if os.path.exists(libdir):
     sys.path.append(libdir)
 
 try:
-    from waveshare_epd import epd4in2b_V2 # type: ignore
+    from waveshare_epd import epd4in2b_V2
 except ImportError:
     logging.critical("Failed to import waveshare_epd. Ensure the library is installed or the path is correct.")
     sys.exit(1)
+
+# Load configuration
+def load_config():
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        logging.critical(f"Failed to load config.json: {e}")
+        sys.exit(1)
+
+config = load_config()
+LAT = config.get('lat')
+LON = config.get('lon')
+UNITS = config.get('units', 'imperial')
+LOCATION_NAME = config.get('location_name', 'Unknown Location')        
 
 # Load API key
 def get_api_key():
@@ -42,25 +58,7 @@ def get_api_key():
         logging.critical(f"API key error: {e}")
         sys.exit(1)
 
-API_KEY = get_api_key()    
-
-# Load configuration
-def load_config():
-    try:
-        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
-        with open(config_path, 'r') as f:
-            return json.load(f)
-    except Exception as e:
-        logging.critical(f"Failed to load config.json: {e}")
-        sys.exit(1)
-
-config = load_config()
-LAT = config.get('lat')
-LON = config.get('lon')
-UNITS = config.get('units', 'imperial')
-LOCATION_NAME = config.get('location_name', 'Unknown Location')        
-
-URL = f"https://api.openweathermap.org/data/3.0/onecall?lat={LAT}&lon={LON}&units={UNITS}&appid={API_KEY}"
+API_KEY = get_api_key()
 
 
 # Fonts
@@ -75,8 +73,9 @@ font_small = ImageFont.truetype(font_path, 12)
 def get_weather_data():
     try:
         if not API_KEY:
-            return None        
-        response = requests.get(URL)
+            return None
+        url = f"https://api.openweathermap.org/data/3.0/onecall?lat={LAT}&lon={LON}&units={UNITS}&appid={API_KEY}"
+        response = requests.get(url)
         return response.json() if response.status_code == 200 else None
     except Exception as e:
         logging.error(f"Error fetching data: {e}")
@@ -99,15 +98,57 @@ def update_display():
 
         black_img = Image.new('1', (epd.width, epd.height), 255)
         red_img = Image.new('1', (epd.width, epd.height), 255)
-        draw_black = ImageDraw.Draw(black_img)
-        draw_red = ImageDraw.Draw(red_img)
+        draw = ImageDraw.Draw(black_img)
 
         data = get_weather_data()
         if not data:
-            draw_black.text((10, 10), "Weather Unavailable", font=font_header, fill=0)
+            draw.text((10, 10), "Weather Unavailable", font=font_header, fill=0)
         else:
-            render_current_weather(draw_black, draw_red, data['current'], data['daily'][0], epd.width)
-            render_forecast(draw_black, draw_red, data['daily'][:5], epd.width)
+            curr = data['current']
+            daily = data['daily']
+            dt = datetime.fromtimestamp(curr['dt'])
+            sunrise = datetime.fromtimestamp(curr['sunrise'])
+            sunset = datetime.fromtimestamp(curr['sunset'])
+            is_night = not (sunrise <= dt <= sunset)
+            update_time = dt.strftime("%I:%M %p")
+
+            draw.rectangle((0, 0, epd.width - 1, epd.height - 1), outline=0, width=2)
+            draw.text((10, 5), "Bloomfield, NJ", font=font_header, fill=0)
+
+            draw.text((10, 28), f"{int(curr['temp'])}°F", font=font_temp, fill=0)
+            icon_path = get_weather_icon(curr['weather'][0]['icon'], size='current', is_night=is_night)
+            if os.path.exists(icon_path):
+                icon = Image.open(icon_path).convert("L").convert("1")
+                black_img.paste(icon.resize((80, 80), Image.LANCZOS), (epd.width - 90, 28))
+
+            draw.text((10, 108), f"Feels: {int(curr['feels_like'])}°F", font=font_large, fill=0)
+            draw.text((10, 130), f"Humid: {curr['humidity']}%", font=font_large, fill=0)
+            draw.text((170, 108), curr['weather'][0]['description'].title(), font=font_large, fill=0)
+            draw.text((170, 130), f"Wind: {int(curr['wind_speed'])} mph", font=font_large, fill=0)
+            draw.text((10, 152), f"High: {int(daily[0]['temp']['max'])}°F", font=font_large, fill=0)
+            draw.text((170, 152), f"Low: {int(daily[0]['temp']['min'])}°F", font=font_large, fill=0)
+
+            days = [datetime.fromtimestamp(d['dt']).strftime('%a') for d in daily[:5]]
+            cell_width = epd.width // 5
+            icon_size = 44
+            y_base = 195
+            y_icon = y_base + 16
+            y_text = y_icon + icon_size + 2
+
+            for i, day in enumerate(days):
+                x_center = i * cell_width + (cell_width // 2)
+                draw.text((x_center - 15, y_base), day, font=font_medium, fill=0)
+                icon_path = get_weather_icon(daily[i]['weather'][0]['icon'], size='forecast', is_night=is_night)
+                if os.path.exists(icon_path):
+                    icon = Image.open(icon_path).convert("L").convert("1")
+                    black_img.paste(icon.resize((icon_size, icon_size), Image.LANCZOS), (x_center - icon_size // 2, y_icon))
+                temp_text = f"{int(daily[i]['temp']['max'])}/{int(daily[i]['temp']['min'])}"
+                temp_width = draw.textlength(temp_text, font=font_small)
+                draw.text((x_center - temp_width // 2, y_text), temp_text, font=font_small, fill=0)
+
+            updated_label = f"Updated: {update_time}"
+            update_width = draw.textlength(updated_label, font=font_small)
+            draw.text((epd.width - update_width - 6, epd.height - 22), updated_label, font=font_small, fill=0)
 
         epd.display(epd.getbuffer(black_img), epd.getbuffer(red_img))
         epd.sleep()
@@ -115,60 +156,6 @@ def update_display():
     except Exception as e:
         logging.error("Error updating display")
         print(traceback.format_exc())
-
-
-def render_current_weather(draw, current, today, width):
-    dt = datetime.fromtimestamp(current['dt'])
-    sunrise = datetime.fromtimestamp(current['sunrise'])
-    sunset = datetime.fromtimestamp(current['sunset'])
-    is_night = not (sunrise <= dt <= sunset)
-    update_time = dt.strftime("%I:%M %p")
-
-    draw.rectangle((0, 0, width - 1, 191), outline=0, width=2)
-    draw.text((10, 5), LOCATION_NAME, font=font_header, fill=0)
-    draw.text((10, 28), f"{int(current['temp'])}°F", font=font_temp, fill=0)
-
-    icon_path = get_weather_icon(current['weather'][0]['icon'], size='current', is_night=is_night)
-    if os.path.exists(icon_path):
-        icon = Image.open(icon_path).convert("L").convert("1")
-        draw.bitmap((width - 90, 28), icon.resize((80, 80), Image.LANCZOS))
-
-    draw.text((10, 108), f"Feels: {int(current['feels_like'])}°F", font=font_large, fill=0)
-    draw.text((10, 130), f"Humid: {current['humidity']}%", font=font_large, fill=0)
-    draw.text((170, 108), current['weather'][0]['description'].title(), font=font_large, fill=0)
-    draw.text((170, 130), f"Wind: {int(current['wind_speed'])} mph", font=font_large, fill=0)
-    draw.text((10, 152), f"High: {int(today['temp']['max'])}°F", font=font_large, fill=0)
-    draw.text((170, 152), f"Low: {int(today['temp']['min'])}°F", font=font_large, fill=0)
-
-    updated_label = f"Updated: {update_time}"
-    update_width = draw.textlength(updated_label, font=font_small)
-    draw.text((width - update_width - 6, 190), updated_label, font=font_small, fill=0)
-
-def render_forecast(draw, forecast_days, width):
-    cell_width = width // 5
-    icon_size = 44
-    y_base = 195
-    y_icon = y_base + 16
-    y_text = y_icon + icon_size + 2
-
-    dt_now = datetime.now()
-    sunrise = datetime.fromtimestamp(forecast_days[0]['sunrise'])
-    sunset = datetime.fromtimestamp(forecast_days[0]['sunset'])
-    is_night = not (sunrise <= dt_now <= sunset)
-
-    for i, day_data in enumerate(forecast_days):
-        x_center = i * cell_width + (cell_width // 2)
-        day_label = datetime.fromtimestamp(day_data['dt']).strftime('%a')
-        draw.text((x_center - 15, y_base), day_label, font=font_medium, fill=0)
-
-        icon_path = get_weather_icon(day_data['weather'][0]['icon'], size='forecast', is_night=is_night)
-        if os.path.exists(icon_path):
-            icon = Image.open(icon_path).convert("L").convert("1")
-            draw.bitmap((x_center - icon_size // 2, y_icon), icon.resize((icon_size, icon_size), Image.LANCZOS))
-
-        temp_text = f"{int(day_data['temp']['max'])}/{int(day_data['temp']['min'])}"
-        temp_width = draw.textlength(temp_text, font=font_small)
-        draw.text((x_center - temp_width // 2, y_text), temp_text, font=font_small, fill=0)
 
 if __name__ == '__main__':
     update_display()
