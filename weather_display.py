@@ -11,10 +11,17 @@ import argparse
 
 logging.basicConfig(level=logging.INFO)
 
-# Parse command-line arguments
-parser = argparse.ArgumentParser(description="Weather Display")
-parser.add_argument('--mock', action='store_true', help='Use mock display instead of real Waveshare e-Paper')
-args = parser.parse_args()
+args = None
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Weather Display")
+    parser.add_argument('--mock', action='store_true', help='Use mock display instead of real Waveshare e-Paper')
+    args = parser.parse_args()
+else:
+    # Default args for test and import use
+    class Args:
+        mock = False
+    args = Args()
 
 # Dynamically set paths
 script_dir = os.path.dirname(os.path.realpath(__file__))

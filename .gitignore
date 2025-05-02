@@ -1,3 +1,5 @@
 api_key.txt
 __pycache__/
 *.pyc
+# Ignore dynamic test output, but not golden image
+tests/snapshots/test_output.png
