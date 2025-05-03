@@ -1,6 +1,7 @@
 {
-    "lat": 40.7293,
-    "lon": -74.2583,
-    "units": "imperial",
-    "location_name": "Bloomfield, NJ"
-  }
+  "lat": 40.7293,
+  "lon": -74.2583,
+  "units": "imperial",
+  "location_name": "Bloomfield, NJ",
+  "template": "classic_single_display"
+}

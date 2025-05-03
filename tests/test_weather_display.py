@@ -27,12 +27,27 @@ class TestWeatherSnapshot(unittest.TestCase):
             },
             "daily": [{
                 "dt": 1700000000 + i * 86400,
-                "temp": {"min": 50 + i, "max": 65 + i},
-                "weather": [{"icon": "01d", "main": "Clear"}],
+                "temp": {
+                    "min": 50 + i, 
+                    "max": 65 + i,
+                    "morn": 58 + i,
+                    "day": 63 + i,
+                    "eve": 61 + i,
+                    "night": 52 + i
+                },
+                "feels_like": {
+                    "morn": 56 + i,
+                    "day": 62 + i,
+                    "eve": 59 + i,
+                    "night": 50 + i
+                },
+                "weather": [{"icon": "01d", "description": "clear sky", "main": "Clear"}],
                 "pop": 0.1,
+                "humidity": 60,
+                "wind_speed": 5 + i,
                 "sunrise": 1699990000 + i * 86400,
                 "sunset": 1700030000 + i * 86400
-            } for i in range(5)]
+            } for i in range(6)]
         }
 
         # Generate test output

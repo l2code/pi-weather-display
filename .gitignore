@@ -1,4 +1,5 @@
 api_key.txt
+CLAUDE.md
 __pycache__/
 *.pyc
 # Ignore dynamic test output, but not golden image
