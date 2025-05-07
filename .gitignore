@@ -1,9 +1,26 @@
-api_key.txt
+pi_weather_display/api_key.txt
+
+# Notes/docs
 CLAUDE.md
+
+# Python cache and artifacts
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 # Ignore dynamic test output, but not golden image
 tests/snapshots/test_output.png
 
 # Ignore Python cache in Waveshare submodule
 external/waveshare/**/*.pyc
+external/waveshare/**/*.pyo
+
+# Build system outputs
+*.egg-info/
+dist/
+build/
+
+# Editor and OS junk
+.vscode/
+venv/
+
