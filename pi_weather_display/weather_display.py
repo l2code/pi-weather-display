@@ -23,7 +23,7 @@ else:
     args = Args()
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
-libdir = os.path.join(script_dir, 'pi_weather_display', 'external', 'waveshare', 'RaspberryPi_JetsonNano', 'python', 'lib')
+libdir = os.path.join(script_dir, 'external', 'waveshare', 'RaspberryPi_JetsonNano', 'python', 'lib')
 picdir = os.path.join(script_dir, 'assets', 'icons')
 
 template_dir = os.path.join(script_dir, 'templates')
