@@ -1,6 +1,6 @@
 # Pi Weather Display
 
-This project displays current and forecast weather data on a Waveshare 4.2" e-paper display using a Raspberry Pi. It uses the OpenWeatherMap API, and supports local development and testing with a mock display environment.
+This project displays current and forecast weather data on a Waveshare 4.2" e-paper display using a Raspberry Pi. It uses the OpenWeatherMap API and supports local development and testing with a mock display environment.
 
 ---
 
@@ -8,18 +8,22 @@ This project displays current and forecast weather data on a Waveshare 4.2" e-pa
 
 ```
 pi-weather-display/
-├── weather_display.py            # Main weather display script
-├── config.json                   # Location and units config
-├── api_key.txt                   # API key for OpenWeatherMap (not in Git)
-├── mock_epd.py                   # Mock display class for local dev
-├── assets/icons/                 # Weather icons
-├── external/waveshare/           # Waveshare driver (via submodule)
+├── pi_weather_display/
+│   ├── main.py                  # Entry point
+│   ├── weather_display.py       # Core logic
+│   ├── mock_epd.py              # Mock display class
+│   ├── config.json              # Location and units config
+│   ├── api_key.txt              # API key (ignored in Git)
+│   ├── assets/icons/            # Weather icons
+│   └── external/waveshare/      # Waveshare drivers
 ├── tests/
-│   ├── test_weather_display.py   # Unit + snapshot tests
-│   ├── update_golden.py          # Script to update golden image
+│   ├── test_weather_display.py  # Snapshot test
+│   ├── update_golden.py         # Golden snapshot updater
 │   └── snapshots/
-│       ├── golden_output.png     # Golden image for test comparison
-│       └── test_output.png       # Generated snapshot from test
+│       ├── golden_output.png
+│       └── test_output.png
+├── requirements.txt
+├── setup.py
 └── .gitignore
 ```
 
@@ -32,10 +36,11 @@ pi-weather-display/
 ```bash
 git clone https://github.com/your-username/pi-weather-display.git
 cd pi-weather-display
-git submodule update --init --recursive
 ```
 
-### 2. Install Requirements (On Pi or venv)
+### 2. Install Requirements
+
+#### 💻 Local or venv (for development)
 
 ```bash
 python3 -m venv venv
@@ -43,54 +48,63 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+#### 🧑‍💻 On Raspberry Pi (system-wide install)
+
+```bash
+sudo apt update
+sudo apt install python3-pip
+pip3 install -r requirements.txt
+```
+
 ### 3. Add Your API Key
 
-Create a file named `api_key.txt` in the root:
+Create a file `pi_weather_display/api_key.txt` with:
 
-```txt
+```
 YOUR_OPENWEATHERMAP_API_KEY
 ```
 
 ### 4. Configure Location and Units
 
-Edit `config.json`:
+Edit `pi_weather_display/config.json`:
 
 ```json
 {
   "lat": 40.7293,
   "lon": -74.2583,
   "units": "imperial",
-  "location_name": "Bloomfield, NJ"
+  "location_name": "Bloomfield, NJ",
+  "template": "classic_single_display"
 }
 ```
 
 ---
 
-## 🚀 Running on Raspberry Pi
+## 🚀 Running the App
+
+### 🖥️ On Raspberry Pi with Real Display
 
 ```bash
-python3 weather_display.py
+python3 pi_weather_display/main.py
 ```
 
-## 💻 Running in Mock Mode (on Desktop)
+### 🦪 On Any System (Mock Mode)
 
 ```bash
-python3 weather_display.py --mock
+python3 pi_weather_display/main.py --mock
 ```
 
-This will show the rendered output in an image viewer.
+This uses `mock_epd.py` and logs output without needing e-Paper hardware.
 
 ---
 
 ## 🧪 Running Tests
 
-Run all tests including snapshot comparison:
-
 ```bash
 python3 -m unittest tests/test_weather_display.py
 ```
 
-To regenerate the golden image based on the current output:
+To update the golden snapshot:
 
 ```bash
 python3 tests/update_golden.py
@@ -98,18 +112,19 @@ python3 tests/update_golden.py
 
 ---
 
-## 🛑 .gitignore Suggestions
+## 👏 .gitignore Suggestions
 
 ```gitignore
 __pycache__/
 *.pyc
-tests/snapshots/test_output.png
 api_key.txt
+tests/snapshots/test_output.png
+pi_weather_display/external/
 ```
 
 ---
 
-## 📦 Requirements
+## 📆 Requirements
 
 * Python 3.7+
 * Pillow
