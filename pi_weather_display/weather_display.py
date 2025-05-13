@@ -5,7 +5,7 @@ import requests
 import json
 from datetime import datetime
 import logging
-from PIL import Image, ImageFont
+from PIL import Image, ImageFont, ImageDraw
 import traceback
 import argparse
 from importlib import import_module
@@ -31,6 +31,22 @@ sys.path.append(template_dir)
 
 if os.path.exists(libdir):
     sys.path.append(libdir)
+
+# Import battery module
+try:
+    # Try to import with package name
+    from pi_weather_display.battery import get_battery_status, add_battery_symbol_to_image, update_charging_history, add_last_charge_time_to_image
+    battery_module_available = True
+    logging.info("Battery module loaded successfully")
+except ImportError:
+    try:
+        # Try without package name
+        from battery import get_battery_status, add_battery_symbol_to_image, update_charging_history, add_last_charge_time_to_image
+        battery_module_available = True
+        logging.info("Battery module loaded successfully")
+    except ImportError:
+        battery_module_available = False
+        logging.warning("Battery module not available. Battery display will be disabled.")
 
 if args.mock:
     print("[INFO] Mock mode enabled")
@@ -117,17 +133,71 @@ def load_template(template_name):
         logging.critical(f"Failed to load template '{template_name}': {e}")
         sys.exit(1)
 
+def add_battery_info(img, battery_pct):
+    if battery_pct < 0:
+        return img  # No valid battery percentage
+    
+    # Create a copy of the image to avoid modifying the original
+    result = img.copy()
+    draw = ImageDraw.Draw(result)
+    
+    # Format the battery text
+    battery_text = f"Batt: {battery_pct:.1f}%"
+    
+    # Use the small font from fonts dictionary
+    font = fonts["small"]
+    
+    # Calculate position in top right with some padding
+    text_bbox = draw.textbbox((0, 0), battery_text, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_height = text_bbox[3] - text_bbox[1]
+    
+    # Draw text in top right corner with some padding
+    draw.text((img.width - text_width - 10, 10), 
+              battery_text, 
+              font=font, 
+              fill=0)  # 0 is black for 1-bit images
+    
+    return result
+
 def update_display():
     try:
+        # Get weather data
         data = get_weather_data()
+        
+        # Initialize display
         epd = epd4in2b_V2.EPD()
         epd.init()
         epd.Clear()
 
+        # Render template
         template = load_template(TEMPLATE_NAME)
         black_img = template.render(data, epd.width, epd.height)
+        
+        # Add battery information to the black image if available
+        if battery_module_available:
+            try:
+                # Get battery status
+                battery_pct, is_charging, current_mA = get_battery_status()
+                
+                # Update charging history
+                update_charging_history(battery_pct, is_charging, current_mA)
+                
+                # Add battery symbol with charging indicator
+                black_img = add_battery_symbol_to_image(black_img, battery_pct, is_charging, font=fonts["small"])
+                logging.info(f"Added battery info: {battery_pct:.1f}%")
+                
+                # Add last charge time at the bottom
+                black_img = add_last_charge_time_to_image(black_img, font=fonts["small"])
+            except Exception as e:
+                logging.error(f"Error adding battery info: {e}")
+                import traceback
+                logging.error(traceback.format_exc())
+        
+        # Create red image (empty in this case)
         red_img = Image.new("1", (epd.width, epd.height), 255)
 
+        # Display the images
         epd.display(epd.getbuffer(black_img), epd.getbuffer(red_img))
         epd.sleep()
     except Exception as e:

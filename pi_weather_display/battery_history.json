@@ -1,0 +1,17 @@
+{
+  "last_charging_time": "2025-05-12T10:44:57.968414",
+  "charging_history": [
+    {
+      "timestamp": "2025-05-12T10:44:57.968414",
+      "status": "charging",
+      "battery_level": 85.7,
+      "current_mA": 250
+    }
+  ],
+  "last_check": {
+    "timestamp": "2025-05-12T11:04:40.292261",
+    "status": "charging",
+    "battery_level": 85.7,
+    "current_mA": 250
+  }
+}
